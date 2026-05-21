@@ -225,4 +225,16 @@ For `la_tok`, also add:
 
 ## 🙏 Acknowledgements
 
-We thank [OpenVLA](https://github.com/openvla/openvla), [UniVLA](https://github.com/OpenDriveLab/UniVLA), [StarVLA](https://github.com/starVLA/starVLA), and [VLA-Adapter](https://github.com/OpenHelix-Team/VLA-Adapter) for their open-sourced work!
+We thank [OpenVLA](https://github.com/openvla/openvla), [UniVLA](https://github.com/OpenDriveLab/UniVLA), [StarVLA](https://github.com/starVLA/starVLA), [VLA-Adapter](https://github.com/OpenHelix-Team/VLA-Adapter) and [Spatial Forcing](https://github.com/OpenHelix-Team/Spatial-Forcing) for their open-sourced work!
+
+## 📚 BibTeX
+
+```bibtex
+@article{pixels2tokens2026,
+  title   = {From Pixels to Tokens: A Systematic Study of Latent Action Supervision for Vision-Language-Action Models},
+  author  = {Lin, Yihan and Li, Haoyang and Li, Yang and Shen, Haitao and Zhao, Yihan and Shao, Chao and Zhang, Jing},
+  journal = {arXiv preprint arXiv:2605.04678},
+  year    = {2026},
+  doi     = {10.48550/arXiv.2605.04678}
+}
+```

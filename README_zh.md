@@ -220,7 +220,7 @@ torchrun --nnodes=1 --nproc_per_node=1 exp/train_vla.py \
 
 ## 🙏 致谢
 
-感谢 [OpenVLA](https://github.com/openvla/openvla)、[UniVLA](https://github.com/OpenDriveLab/UniVLA)、[StarVLA](https://github.com/starVLA/starVLA) 和 [VLA-Adapter](https://github.com/OpenHelix-Team/VLA-Adapter) 的开源工作！
+感谢 [OpenVLA](https://github.com/openvla/openvla)、[UniVLA](https://github.com/OpenDriveLab/UniVLA)、[StarVLA](https://github.com/starVLA/starVLA) [VLA-Adapter](https://github.com/OpenHelix-Team/VLA-Adapter) 和 [Spatial Forcing](https://github.com/OpenHelix-Team/Spatial-Forcing) 的开源工作！
 
 ### 额外致谢
 
@@ -229,3 +229,15 @@ torchrun --nnodes=1 --nproc_per_node=1 exp/train_vla.py \
 <p align="center">
   <img src="asserts/jaka.jpg" alt="Capybara supporting the experimental site" width="50%">
 </p>
+
+## 📚 引用
+
+```bibtex
+@article{pixels2tokens2026,
+  title   = {From Pixels to Tokens: A Systematic Study of Latent Action Supervision for Vision-Language-Action Models},
+  author  = {Lin, Yihan and Li, Haoyang and Li, Yang and Shen, Haitao and Zhao, Yihan and Shao, Chao and Zhang, Jing},
+  journal = {arXiv preprint arXiv:2605.04678},
+  year    = {2026},
+  doi     = {10.48550/arXiv.2605.04678}
+}
+```
