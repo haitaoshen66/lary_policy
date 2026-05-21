@@ -211,6 +211,24 @@ torchrun --nnodes=1 --nproc_per_node=1 exp/train_vla.py \
 --action_tokenizer_ckpt /path/to/tokenizer_step_xxxxx.pt
 ```
 
+## 🧪 测试
+
+对于 LIBERO 测试，仓库中提供了可直接运行的脚本 [`scripts/libero.sh`](./scripts/libero.sh)。
+
+运行前请先修改脚本中的几个占位项：
+
+- `PYTHONPATH` -> `path_to_libero`
+- `--pretrained_checkpoint` -> `path_to_pretrained_checkpoint`
+- `VLA_ID` -> `la_align`、`la_direct`、`la_cond`、`la_tok` 或 `baseline`
+
+然后直接执行：
+
+```bash
+bash scripts/libero.sh
+```
+
+该脚本会在后台调用 [`experiments/robot/libero/run_libero_eval.py`](./experiments/robot/libero/run_libero_eval.py)，并将日志写入 `logs/libero/`。
+
 ## 📝 说明
 
 - 机器人相关 constants 会通过命令行参数在 [`latentvla/models/constants.py`](./latentvla/models/constants.py) 中自动选择。如果你的 dataset name 不能清楚表明 robot platform，需要手动调整该文件。

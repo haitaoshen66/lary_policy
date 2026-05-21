@@ -216,6 +216,24 @@ For `la_tok`, also add:
 --action_tokenizer_ckpt /path/to/tokenizer_step_xxxxx.pt
 ```
 
+## 🧪 Evaluation
+
+For LIBERO evaluation, we provide a ready-to-run script: [`scripts/libero.sh`](./scripts/libero.sh).
+
+Before running it, edit the following placeholders in the script:
+
+- `PYTHONPATH` -> `path_to_libero`
+- `--pretrained_checkpoint` -> `path_to_pretrained_checkpoint`
+- `VLA_ID` -> one of `la_align`, `la_direct`, `la_cond`, `la_tok`, `baseline`
+
+Then launch evaluation with:
+
+```bash
+bash scripts/libero.sh
+```
+
+The script runs [`experiments/robot/libero/run_libero_eval.py`](./experiments/robot/libero/run_libero_eval.py) in the background and writes logs to `logs/libero/`.
+
 ## 📝 Notes
 
 - Robot-specific constants are selected in [`latentvla/models/constants.py`](./latentvla/models/constants.py) by parsing command-line arguments. If your dataset name does not clearly indicate the robot platform, adjust that file manually.
