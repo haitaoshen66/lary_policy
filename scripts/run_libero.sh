@@ -1,6 +1,6 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 
-torchrun --nnodes=1 --nproc_per_node=2 exp/train_vla.py \
+torchrun --nnodes=1 --nproc_per_node=4 exp/train_vla.py \
   --seed 42 \
   --run_root_dir runs \
   --save_checkpoint True \
@@ -21,7 +21,7 @@ torchrun --nnodes=1 --nproc_per_node=2 exp/train_vla.py \
   --epochs 10 \
   --max_steps 60000 \
   --global_batch_size 128 \
-  --per_device_batch_size 32 \
+  --per_device_batch_size 16 \
   --learning_rate 2e-4 \
   --weight_decay 0.01 \
   --max_grad_norm 1.0 \
