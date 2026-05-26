@@ -1,0 +1,34 @@
+export CUDA_VISIBLE_DEVICES=0,1
+
+torchrun --nnodes=1 --nproc_per_node=2 exp/train_vla.py \
+  --seed 42 \
+  --run_root_dir runs \
+  --save_checkpoint True \
+  --vla_id la_direct \
+  --action_head_type flow_gr00t \
+  --flow_dit_size dit-b \
+  --codebook_size 8 \
+  --latent_tokens_per_step 16 \
+  --vlm_path /ssd/linyihan/ckpt/Qwen3-VL-2B-Instruct \
+  --vlm_model_id Qwen3 \
+  --default_image_size 224 \
+  --data_root_dir /ssd/linyihan/datasets/new_latent \
+  --data_mix '["libero_10"]' \
+  --shuffle_buffer_size 128 \
+  --image_aug True \
+  --window_size 8 \
+  --use_wrist_image True \
+  --use_proprio True \
+  --type training \
+  --epochs 10 \
+  --max_steps 60000 \
+  --global_batch_size 128 \
+  --per_device_batch_size 32 \
+  --learning_rate 2e-4 \
+  --weight_decay 0.01 \
+  --max_grad_norm 1.0 \
+  --lr_scheduler_type constant \
+  --warmup_ratio 0.03 \
+  --save_step 20000 \
+  --use_wandb False \
+  --token_loss_weight 1.0

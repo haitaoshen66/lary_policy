@@ -296,6 +296,8 @@ def get_vla(cfg: Any):
     vla_id = cfg.vla_id
     action_head_type = getattr(cfg, "action_head_type", "l1").lower()
     flow_dit_size = getattr(cfg, "flow_dit_size", "dit-b").lower()
+    codebook_size = getattr(cfg, "codebook_size", 16)
+    latent_tokens_per_step = getattr(cfg, "latent_tokens_per_step", 4)
     if cfg.vlm_model_id == "Qwen3":
         model = Qwen3VLForConditionalGeneration.from_pretrained(
             cfg.vlm_model_dir, trust_remote_code=True,
@@ -306,7 +308,7 @@ def get_vla(cfg: Any):
 
         # add latent tokens
         if vla_id == "la_direct" or vla_id == "la_cond":
-            special_tokens_dict = {'additional_special_tokens': [f'<ACT_{i}>' for i in range(16)]}
+            special_tokens_dict = {'additional_special_tokens': [f'<ACT_{i}>' for i in range(codebook_size)]}
             num_added_toks = processor.tokenizer.add_special_tokens(special_tokens_dict)
             # Latent tokens range: 151665 ~ 151680
             print(f"Latent tokens range: {processor.tokenizer.convert_tokens_to_ids(special_tokens_dict['additional_special_tokens'][0])} ~ {processor.tokenizer.convert_tokens_to_ids(special_tokens_dict['additional_special_tokens'][-1])}, num = {num_added_toks}")
@@ -720,7 +722,7 @@ def get_vla_action(
         lang = task_label.lower()
         action_token = "🔍"
         if vla_id == "la_direct":
-            action_tokens = action_token * (4*NUM_ACTIONS_CHUNK+1)
+            action_tokens = action_token * (latent_tokens_per_step * NUM_ACTIONS_CHUNK + 1)
         elif vla_id == "la_cond":
             action_tokens = action_token* (5*NUM_ACTIONS_CHUNK+1)
         elif vla_id in {"baseline", "la_align"}:
@@ -811,9 +813,9 @@ def get_vla_action(
                     last_hidden=text_hidden,
                     input_ids=batch_inputs["input_ids"][:, :],  # 对应 text 区间
                     action_token_id=vla.action_token_id,
-                    num_chunk=NUM_ACTIONS_CHUNK*4,
+                    num_chunk=NUM_ACTIONS_CHUNK * latent_tokens_per_step,
                 )  # [B, NUM_ACTIONS_CHUNK, H]
-                action_hidden = action_hidden.reshape(B, NUM_ACTIONS_CHUNK, 4, H)
+                action_hidden = action_hidden.reshape(B, NUM_ACTIONS_CHUNK, latent_tokens_per_step, H)
                 action_hidden = vla.pooling(action_hidden)   
             elif vla_id == "la_cond":
                 action_hidden = _gather_action_token_embeddings(

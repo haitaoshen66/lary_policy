@@ -102,6 +102,7 @@ class RLDSBatchTransformQwen3:
     processor: AutoProcessor
     use_wrist_image: bool = False
     use_proprio: bool = False
+    latent_tokens_per_step: int = 4
 
     def __call__(self, rlds_batch: Dict[str, Any]) -> Dict[str, Any]:
         dataset_name, actions = rlds_batch["dataset_name"], rlds_batch["action"]
@@ -164,6 +165,7 @@ class RLDSBatchTransformQwen3Token:
     use_proprio: bool = False
     action_encoder: nn.Module = None
     action_vq: nn.Module = None
+    latent_tokens_per_step: int = 4
 
     def __call__(self, rlds_batch: Dict[str, Any]) -> Dict[str, Any]:
         dataset_name, actions = rlds_batch["dataset_name"], rlds_batch["action"]
@@ -246,10 +248,11 @@ class RLDSBatchTransformQwen3Joint:
     processor: AutoProcessor
     use_wrist_image: bool = False
     use_proprio: bool = False
+    latent_tokens_per_step: int = 4
 
     def __call__(self, rlds_batch: Dict[str, Any]) -> Dict[str, Any]:
         dataset_name, actions = rlds_batch["dataset_name"], rlds_batch["action"]
-        latent_action_idx = rlds_batch["latent_idx"]   # shape = [chunk, 4]
+        latent_action_idx = rlds_batch["latent_idx"]
         latent_action_z  = rlds_batch["latent_z"]
 
         # -----------------------------------------
@@ -275,7 +278,7 @@ class RLDSBatchTransformQwen3Joint:
             instr = instr.decode("utf-8")
         assert isinstance(instr, str), f"Unexpected type: {type(instr)}"
         lang = instr.lower()
-        total_latent_tokens = NUM_ACTIONS_CHUNK * 4
+        total_latent_tokens = NUM_ACTIONS_CHUNK * self.latent_tokens_per_step
 
         dummy_placeholder = "🔍"
         prompt_suffix = (
@@ -343,10 +346,11 @@ class RLDSBatchTransformQwen3Uni:
     processor: AutoProcessor
     use_wrist_image: bool = False
     use_proprio: bool = False
+    latent_tokens_per_step: int = 4
 
     def __call__(self, rlds_batch: Dict[str, Any]) -> Dict[str, Any]:
         dataset_name, actions = rlds_batch["dataset_name"], rlds_batch["action"]
-        latent_action_idx = rlds_batch["latent_idx"]   # shape = [chunk, 4]
+        latent_action_idx = rlds_batch["latent_idx"]
         latent_action_z  = rlds_batch["latent_z"]
 
         imgs = []
@@ -367,7 +371,7 @@ class RLDSBatchTransformQwen3Uni:
         assert isinstance(instr, str), f"Unexpected type: {type(instr)}"
         lang = instr.lower()
 
-        total_latent_tokens = NUM_ACTIONS_CHUNK * 4
+        total_latent_tokens = NUM_ACTIONS_CHUNK * self.latent_tokens_per_step
         total_dummy_tokens = total_latent_tokens + NUM_ACTIONS_CHUNK
 
         dummy_placeholder = "🔍"

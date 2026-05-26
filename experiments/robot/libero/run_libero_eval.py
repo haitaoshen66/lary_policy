@@ -85,6 +85,8 @@ class GenerateConfig:
     vla_id: str = "la_direct"
     action_head_type: str = "l1"
     flow_dit_size: str = "dit-b"
+    codebook_size: int = 16
+    latent_tokens_per_step: int = 4
     pretrained_checkpoint: Union[str, Path] = ""     # Pretrained checkpoint path
     vlm_model_dir: str = "path_to_vlm_model_dir"
     use_l1_regression: bool = True                   # If True, uses continuous action head with L1 regression objective
@@ -475,6 +477,8 @@ def eval_libero(cfg: GenerateConfig) -> float:
     }
     if cfg.vla_id in VLA_CONSTANT_OVERRIDES:
         overrides.update(VLA_CONSTANT_OVERRIDES[cfg.vla_id])
+    if cfg.vla_id == "la_direct":
+        overrides["NUM_TOKENS"] = NUM_ACTIONS_CHUNK * cfg.latent_tokens_per_step
     _apply_constant_overrides(constants, overrides)
 
     # Initialize model and components

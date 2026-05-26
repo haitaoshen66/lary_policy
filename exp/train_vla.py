@@ -46,6 +46,7 @@ class FinetuneConfig:
     vlm_model_id: str = "Qwen3"
     default_image_size: int = 224
     codebook_size: int = 16
+    latent_tokens_per_step: int = 4
     use_latent: bool = True
     pretrained_checkpoint: str = "path_to_pretrained_model"
     from_pretrained: bool = False
@@ -151,6 +152,7 @@ def get_batch_transform(cfg, processor):
         processor=processor,
         use_wrist_image=cfg.use_wrist_image,
         use_proprio=cfg.use_proprio,
+        latent_tokens_per_step=cfg.latent_tokens_per_step,
     )
 
 
