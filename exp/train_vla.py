@@ -23,6 +23,7 @@ from latentvla.data_provider.rlds.utils.data_utils import save_dataset_statistic
 from latentvla.data_provider.datasets import RLDSDataset
 from latentvla.data_provider.data_utils import PaddedCollatorForQwen3
 from latentvla.models.vla import Baseline, LA_Cond_VLA, LA_Align_VLA, LA_Direct_VLA, LA_Tok_VLA
+from latentvla.models.constants import NUM_ACTIONS_CHUNK
 
 # Sane Defaults
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -60,6 +61,8 @@ class FinetuneConfig:
     use_pro_version: bool = False
     num_images_in_input: int = 2
     action_tokenizer_ckpt: str = "path_to_action_tokenizer_ckpt"
+    action_head_type: str = "l1"
+    flow_dit_size: str = "dit-b"
 
     # training
     type: str = "training"
@@ -92,16 +95,27 @@ def load_vlm(cfg):
     return model, tokenizer, processor, config
 
 def load_vla(cfg, vlm, processor):
-    if cfg.vla_id == "la_direct":
-        vla = LA_Direct_VLA(vlm=vlm, num_images=cfg.num_images_in_input, use_proprio=cfg.use_proprio,action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version)
-    elif cfg.vla_id == "la_cond":
-        vla = LA_Cond_VLA(vlm=vlm, num_images=cfg.num_images_in_input, use_proprio=cfg.use_proprio,action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version)
-    elif cfg.vla_id == "baseline":
-        vla = Baseline(vlm=vlm, num_images=cfg.num_images_in_input, use_proprio=cfg.use_proprio,action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version)
-    elif cfg.vla_id == "la_tok":
-        vla = LA_Tok_VLA(vlm=vlm, num_images=cfg.num_images_in_input, use_proprio=cfg.use_proprio,action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version)
+    action_head_type = cfg.action_head_type.lower()
+    flow_dit_size = cfg.flow_dit_size.lower()
+    if cfg.vla_id in {"baseline", "la_align"}:
+        prompt_suffix_text = f"Please predict the next {NUM_ACTIONS_CHUNK*5} robot actions: "
     else:
-        vla = LA_Align_VLA(vlm=vlm, num_images=cfg.num_images_in_input, use_proprio=cfg.use_proprio, action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version)
+        prompt_suffix_text = f"Please predict the next {NUM_ACTIONS_CHUNK} robot actions: "
+    prompt_suffix_token_ids = processor.tokenizer(
+        prompt_suffix_text,
+        add_special_tokens=False,
+    )["input_ids"]
+
+    if cfg.vla_id == "la_direct":
+        vla = LA_Direct_VLA(vlm=vlm, num_images=cfg.num_images_in_input, use_proprio=cfg.use_proprio,action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version, action_head_type=action_head_type, flow_dit_size=flow_dit_size, prompt_suffix_token_ids=prompt_suffix_token_ids)
+    elif cfg.vla_id == "la_cond":
+        vla = LA_Cond_VLA(vlm=vlm, num_images=cfg.num_images_in_input, use_proprio=cfg.use_proprio,action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version, action_head_type=action_head_type, flow_dit_size=flow_dit_size, prompt_suffix_token_ids=prompt_suffix_token_ids)
+    elif cfg.vla_id == "baseline":
+        vla = Baseline(vlm=vlm, num_images=cfg.num_images_in_input, use_proprio=cfg.use_proprio,action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version, action_head_type=action_head_type, flow_dit_size=flow_dit_size, prompt_suffix_token_ids=prompt_suffix_token_ids)
+    elif cfg.vla_id == "la_tok":
+        vla = LA_Tok_VLA(vlm=vlm, num_images=cfg.num_images_in_input, use_proprio=cfg.use_proprio,action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version, action_head_type=action_head_type, flow_dit_size=flow_dit_size, prompt_suffix_token_ids=prompt_suffix_token_ids)
+    else:
+        vla = LA_Align_VLA(vlm=vlm, num_images=cfg.num_images_in_input, use_proprio=cfg.use_proprio, action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version, action_head_type=action_head_type, flow_dit_size=flow_dit_size, prompt_suffix_token_ids=prompt_suffix_token_ids)
     if cfg.from_pretrained:
         ckpt_dir = os.path.join(cfg.pretrained_checkpoint, "checkpoints")
         ckpt_list = sorted(glob.glob(os.path.join(ckpt_dir, "step-*-epoch-*-loss=*.pt")))
@@ -255,15 +269,25 @@ def train(cfg: FinetuneConfig) -> None:
     vla = load_vla(cfg, vlm, processor)
 
     # [Validate] Model should be in Full Precision!
-    total = sum(p.numel() for p in vlm.parameters())
-    trainable = sum(p.numel() for p in vlm.parameters() if p.requires_grad)
-    # latent_head_params = sum(p.numel() for p in vla.latent_action_head.parameters())
+    vlm_total_params = sum(p.numel() for p in vla.vlm.parameters())
+    vlm_lora_trainable_params = sum(p.numel() for p in vla.vlm.parameters() if p.requires_grad)
     action_head_params = sum(p.numel() for p in vla.action_head.parameters())
+    total_trainable_params = sum(p.numel() for p in vla.parameters() if p.requires_grad)
 
-    print(f"# Parameters of VLA: {total/1e6:.2f}M total, {trainable/1e6:.2f}M trainable, {action_head_params/1e6:.2f}M action head", flush=True)
+    print(
+        "🔥 PARAMS | "
+        f"🧊 VLM Total: {vlm_total_params/1e6:.2f}M | "
+        f"🔥 VLM LoRA Trainable: {vlm_lora_trainable_params/1e6:.2f}M | "
+        f"🔥 Action Head: {action_head_params/1e6:.2f}M | "
+        f"🔥 Total Trainable: {total_trainable_params/1e6:.2f}M",
+        flush=True,
+    )
     
     overwatch.info(
-        f"# Parameters of VLA (in millions): {total / 10**6:.3f} Total, {trainable / 10**6:.3f} Trainable"
+        f"# Parameters (M): VLM Total={vlm_total_params / 10**6:.3f}, "
+        f"VLM LoRA Trainable={vlm_lora_trainable_params / 10**6:.3f}, "
+        f"Action Head={action_head_params / 10**6:.3f}, "
+        f"Total Trainable={total_trainable_params / 10**6:.3f}"
     )
 
     # Create Train Strategy

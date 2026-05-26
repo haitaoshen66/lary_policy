@@ -8,6 +8,7 @@ safetensors
 tokenizers
 sentencepiece
 qwen-vl-utils
+diffusers
 
 # PyTorch ecosystem helpers
 einops
