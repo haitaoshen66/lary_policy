@@ -282,6 +282,7 @@ def get_vla(cfg: Any):
     from latentvla.extern.modeling_internvl_chat import InternVLChatModel
     from latentvla.models import Baseline, LA_Align_VLA, LA_Cond_VLA, LA_Direct_VLA, LA_Tok_VLA
     from collections import OrderedDict
+    from latentvla.models.constants import NUM_ACTIONS_CHUNK
     """
     Load and initialize the VLA model from checkpoint.
 
@@ -293,6 +294,8 @@ def get_vla(cfg: Any):
     """
     print("Instantiating pretrained VLA policy...")
     vla_id = cfg.vla_id
+    action_head_type = getattr(cfg, "action_head_type", "l1").lower()
+    flow_dit_size = getattr(cfg, "flow_dit_size", "dit-b").lower()
     if cfg.vlm_model_id == "Qwen3":
         model = Qwen3VLForConditionalGeneration.from_pretrained(
             cfg.vlm_model_dir, trust_remote_code=True,
@@ -328,16 +331,25 @@ def get_vla(cfg: Any):
         model.tokenizer = tokenizer
         model.vision_model.set_num_images_in_input(2)
         processor = None
+    if vla_id in {"baseline", "la_align"}:
+        prompt_suffix_text = f"Please predict the next {NUM_ACTIONS_CHUNK*5} robot actions: "
+    else:
+        prompt_suffix_text = f"Please predict the next {NUM_ACTIONS_CHUNK} robot actions: "
+    prompt_suffix_token_ids = processor.tokenizer(
+        prompt_suffix_text,
+        add_special_tokens=False,
+    )["input_ids"]
+
     if vla_id == "la_direct":
-        model = LA_Direct_VLA(vlm=model, num_images=cfg.num_images, use_proprio=cfg.use_proprio, action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version)
+        model = LA_Direct_VLA(vlm=model, num_images=cfg.num_images, use_proprio=cfg.use_proprio, action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version, action_head_type=action_head_type, flow_dit_size=flow_dit_size, prompt_suffix_token_ids=prompt_suffix_token_ids)
     elif vla_id == "la_align":
-        model = LA_Align_VLA(vlm=model, num_images=cfg.num_images, use_proprio=cfg.use_proprio, action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version)
+        model = LA_Align_VLA(vlm=model, num_images=cfg.num_images, use_proprio=cfg.use_proprio, action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version, action_head_type=action_head_type, flow_dit_size=flow_dit_size, prompt_suffix_token_ids=prompt_suffix_token_ids)
     elif vla_id == "la_cond":
-        model = LA_Cond_VLA(vlm=model, num_images=cfg.num_images, use_proprio=cfg.use_proprio, action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version)
+        model = LA_Cond_VLA(vlm=model, num_images=cfg.num_images, use_proprio=cfg.use_proprio, action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version, action_head_type=action_head_type, flow_dit_size=flow_dit_size, prompt_suffix_token_ids=prompt_suffix_token_ids)
     elif vla_id == "la_tok":
-        model = LA_Tok_VLA(vlm=model, num_images=cfg.num_images, use_proprio=cfg.use_proprio, action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version)
+        model = LA_Tok_VLA(vlm=model, num_images=cfg.num_images, use_proprio=cfg.use_proprio, action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version, action_head_type=action_head_type, flow_dit_size=flow_dit_size, prompt_suffix_token_ids=prompt_suffix_token_ids)
     elif vla_id == "baseline":
-        model = Baseline(vlm=model, num_images=cfg.num_images, use_proprio=cfg.use_proprio,action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version)
+        model = Baseline(vlm=model, num_images=cfg.num_images, use_proprio=cfg.use_proprio,action_token_id=processor.tokenizer("🔍", add_special_tokens=False)["input_ids"][0], use_pro_version = cfg.use_pro_version, action_head_type=action_head_type, flow_dit_size=flow_dit_size, prompt_suffix_token_ids=prompt_suffix_token_ids)
     else:
         raise ValueError(f"Unsupported vla_id: {vla_id}")
     
@@ -711,9 +723,14 @@ def get_vla_action(
             action_tokens = action_token * (4*NUM_ACTIONS_CHUNK+1)
         elif vla_id == "la_cond":
             action_tokens = action_token* (5*NUM_ACTIONS_CHUNK+1)
+        elif vla_id in {"baseline", "la_align"}:
+            action_tokens = action_token* (5*NUM_ACTIONS_CHUNK+1)
         else:
             action_tokens = action_token* (NUM_ACTIONS_CHUNK+1)
-        prompt_suffix = f"Please predict the next {NUM_ACTIONS_CHUNK} robot actions: {action_tokens}"
+        if vla_id in {"baseline", "la_align"}:
+            prompt_suffix = f"Please predict the next {NUM_ACTIONS_CHUNK*5} robot actions: {action_tokens}"
+        else:
+            prompt_suffix = f"Please predict the next {NUM_ACTIONS_CHUNK} robot actions: {action_tokens}"
         
         content = [{"type": "image", "image": img} for img in all_images]
         content.append({"type": "text", "text": lang + prompt_suffix})
@@ -746,9 +763,44 @@ def get_vla_action(
             proprio_norm_stats = vla.norm_stats[cfg.unnorm_key]["proprio"]
             obs["state"] = normalize_proprio(proprio, proprio_norm_stats, cfg)
             proprio = obs["state"]
-        num_patches = 512
-        from latentvla.models.vla.utils import _gather_action_token_embeddings
+        from latentvla.models.vla.utils import _gather_action_token_embeddings, gather_non_placeholder_hidden_states
 
+        action_head_type = getattr(cfg, "action_head_type", "l1").lower()
+
+        if action_head_type == "flow_gr00t":
+            if vla_id in {"baseline", "la_align"}:
+                prompt_suffix_text = f"Please predict the next {NUM_ACTIONS_CHUNK*5} robot actions: "
+            else:
+                prompt_suffix_text = f"Please predict the next {NUM_ACTIONS_CHUNK} robot actions: "
+            prompt_suffix_token_ids = tokenizer.tokenizer(
+                prompt_suffix_text,
+                add_special_tokens=False,
+            )["input_ids"]
+
+            vl_embs, vl_mask = gather_non_placeholder_hidden_states(
+                last_hidden=vlm_outputs.hidden_states[-1],
+                input_ids=batch_inputs["input_ids"],
+                attention_mask=batch_inputs["attention_mask"],
+                placeholder_token_id=vla.action_token_id,
+                prompt_suffix_token_ids=prompt_suffix_token_ids,
+            )
+
+            proprio_tensor = None
+            if cfg.use_proprio:
+                proprio_tensor = torch.tensor(proprio, dtype=torch.float32, device="cuda").unsqueeze(0)
+
+            normalized_actions = vla.action_head.predict_action(
+                vl_embs=vl_embs,
+                state=proprio_tensor,
+                encoder_attention_mask=vl_mask,
+            )
+            normalized_actions = normalized_actions.reshape(NUM_ACTIONS_CHUNK, ACTION_DIM)
+            normalized_actions = normalized_actions.float().cpu().detach().numpy()
+
+            action = _unnormalize_actions(vla, normalized_actions, cfg.unnorm_key)
+            return [action[i] for i in range(min(len(action), cfg.num_open_loop_steps))]
+
+        num_patches = 512
         multi_layer_hidden_states = []
         for layer_hidden in vlm_outputs.hidden_states[-12:]:
             B, L, H = layer_hidden.shape

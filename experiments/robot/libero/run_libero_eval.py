@@ -83,6 +83,8 @@ class GenerateConfig:
     #################################################################################################################
     model_family: str = "openvla"                    # Model family
     vla_id: str = "la_direct"
+    action_head_type: str = "l1"
+    flow_dit_size: str = "dit-b"
     pretrained_checkpoint: Union[str, Path] = ""     # Pretrained checkpoint path
     vlm_model_dir: str = "path_to_vlm_model_dir"
     use_l1_regression: bool = True                   # If True, uses continuous action head with L1 regression objective
