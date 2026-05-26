@@ -43,10 +43,45 @@
 
 ## 📦 安装
 
-在项目根目录安装依赖：
+```bash
+conda create -n latentvla python=3.10 -y
+conda activate latentvla
+
+pip install --upgrade pip setuptools wheel
+```
+
+下载torch，下面提供CUDA=12.8的版本：
+
+```bash
+pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
+  --index-url https://download.pytorch.org/whl/cu128
+```
+
+安装其他依赖，还有当前的仓库：
 
 ```bash
 pip install -r requirements.txt
+pip install -e .
+```
+
+下载`dlimp`库：
+
+```bash
+pip install --no-deps --force-reinstall git+https://github.com/moojink/dlimp_openvla.git
+```
+
+下载 FlashAttention 2，在vla训练过程中会用到`attn_implementation="flash_attention_2"`，不安装可以使用`attn_implementation="sdpa"`
+
+```bash
+pip install packaging ninja
+ninja --version
+pip install flash-attn==2.8.3 --no-build-isolation
+```
+
+也可以用预编译版本的，可以从这里下载：https://github.com/Dao-AILab/flash-attention/releases?page=2
+
+```bash
+pip install /path/to/flash_attn-2.8.3-*.whl
 ```
 
 ## 💾 数据准备
@@ -55,7 +90,7 @@ pip install -r requirements.txt
 
 本项目使用到的公开 RLDS datasets 包括：
 
-- [LIBERO](https://huggingface.co/datasets/openvla/modified_libero_rlds)
+- [LIBERO](https://huggingface.co/CokeAnd1ce/From_Pixels_to_Tokens)
 - [RoboTwin 2.0](https://huggingface.co/datasets/TianxingChen/RoboTwin2.0)
 - [JAKA dataset](https://huggingface.co/CokeAnd1ce/From_Pixels_to_Tokens)
 

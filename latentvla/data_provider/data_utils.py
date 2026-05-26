@@ -122,8 +122,6 @@ class RLDSBatchTransformQwen3:
             instr = instr.decode("utf-8")
         assert isinstance(instr, str), f"Unexpected type: {type(instr)}"
         lang = instr.lower()
-
-        lang = DATASET_INSTR_MAP.get(dataset_name.decode("utf-8"), lang)
         
         action_token = "🔍"
         action_tokens = action_token* (NUM_ACTIONS_CHUNK*5+1)
@@ -197,8 +195,6 @@ class RLDSBatchTransformQwen3Token:
             instr = instr.decode("utf-8")
         assert isinstance(instr, str), f"Unexpected type: {type(instr)}"
         lang = instr.lower()
-
-        lang = DATASET_INSTR_MAP.get(dataset_name.decode("utf-8"), lang)
      
         prompt_suffix = (
             f"Please predict the next {NUM_ACTIONS_CHUNK} robot actions: "

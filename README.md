@@ -16,6 +16,8 @@
 
 ## ✨ News ✨
 
+- [2026/05/26] Add LIBERO datasets and evaluation code.
+- [2026/05/24] Our paper was accepted as an ICML 2026 Oral✨.
 - [2026/05/06] Our paper is now available on arXiv. We also release the project code, checkpoints, and dataset.
 - [2026/05/01] Our paper was accepted as an ICML 2026 Spotlight.
 
@@ -48,10 +50,47 @@ All methods share the same VLA backbone and action head, and differ only in how 
 
 ## 📦 Installation
 
-Install dependencies from the project root:
+```bash
+conda create -n latentvla python=3.10 -y
+conda activate latentvla
+
+pip install --upgrade pip setuptools wheel
+```
+
+Install the PyTorch 2.8 stack. The command below uses CUDA 12.8 wheels:
+
+```bash
+pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
+  --index-url https://download.pytorch.org/whl/cu128
+```
+
+Then install the project requirements from the repository root:
 
 ```bash
 pip install -r requirements.txt
+pip install -e .
+```
+
+Install `dlimp`, which is used by the RLDS data pipeline:
+
+```bash
+pip install --no-deps --force-reinstall git+https://github.com/moojink/dlimp_openvla.git
+```
+
+Install FlashAttention 2. The VLA training path uses
+`attn_implementation="flash_attention_2"`, or can use `attn_implementation="sdpa"`.
+
+```bash
+pip install packaging ninja
+ninja --version
+pip install flash-attn==2.8.3 --no-build-isolation
+```
+
+If you already have a compatible prebuilt FlashAttention wheel, you can install
+it directly instead:
+
+```bash
+pip install /path/to/flash_attn-2.8.3-*.whl
 ```
 
 ## 💾 Data Preparation
@@ -60,7 +99,7 @@ The repository assumes RLDS-style datasets for both latent action preprocessing 
 
 Public RLDS-format datasets used in this project include:
 
-- [LIBERO](https://huggingface.co/datasets/openvla/modified_libero_rlds)
+- [LIBERO](https://huggingface.co/CokeAnd1ce/From_Pixels_to_Tokens)
 - [RoboTwin 2.0](https://huggingface.co/datasets/TianxingChen/RoboTwin2.0)
 - [JAKA dataset](https://huggingface.co/CokeAnd1ce/From_Pixels_to_Tokens)
 
